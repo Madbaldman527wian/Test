@@ -320,39 +320,5 @@ end)
 
 -- Aplica o fling a cada frame
 RunService.Heartbeat:Connect(applyFling)
--- Variáveis principais  
-local Players = game:GetService("Players")  
-local RunService = game:GetService("RunService")  
-local Workspace = game:GetService("Workspace")  
-
-local localPlayer = Players.LocalPlayer  
-local char = localPlayer.Character or localPlayer.CharacterAdded:Wait()
-local rootPart = char:WaitForChild("HumanoidRootPart")
-
--- Tabela para armazenar partes não ancoradas válidas
-local unanchoredParts = {}
-
--- Função para atualizar a lista de partes não ancoradas válidas
-local function updateUnanchoredParts()  
-    table.clear(unanchoredParts)
-    for _, part in ipairs(Workspace:GetDescendants()) do  
-        if part:IsA("BasePart") and not part.Anchored then  
-            local parent = part.Parent
-            
-            -- Ignora partes que pertencem a personagens de jogadores
-            if not (parent and Players:GetPlayerFromCharacter(parent)) then
-                -- Ignora partes que contêm um Motor6D
-                if not part:FindFirstChildWhichIsA("Motor6D", true) then  
-                    unanchoredParts[part] = part -- Usa um dicionário para otimização
-                    part.Destroying:Connect(function()
-                        unanchoredParts[part] = nil -- Remove a parte da lista ao ser deletada
-                    end)
-                end
-            end
-        end  
-    end  
-end  
-
-task.wait(1)
 
 loadstring(game:HttpGet("https://raw.githubusercontent.com/randomstring0/Qwerty/refs/heads/main/qwerty38.lua"))()
