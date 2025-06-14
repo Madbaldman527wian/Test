@@ -1,0 +1,159 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+
+local speaker = Players.LocalPlayer
+local character = speaker.Character or speaker.CharacterAdded:Wait()
+local rootPart = character:WaitForChild("HumanoidRootPart")
+
+local BASE_RADIUS = 10 -- Raio mínimo da esfera
+local MAX_RADIUS = 180  -- Raio máximo da esfera
+local RADIUS = BASE_RADIUS -- Raio atual, que varia dinamicamente
+local radiusGrowing = true -- Controla o crescimento e diminuição do raio
+
+local trackedParts = {} -- Dicionário para evitar verificações repetitivas
+local currentTarget = nil -- Jogador alvo
+
+-- Função para verificar se a parte pertence a um jogador
+local function isPlayerPart(part)
+    local model = part.Parent
+    while model do
+        if Players:GetPlayerFromCharacter(model) then
+            return true
+        end
+        model = model.Parent
+    end
+    return false
+end
+
+-- Gera um ponto aleatório distribuído uniformemente na esfera
+local function getRandomSphereOffset()
+    local u, v = math.random(), math.random()
+    local theta = 2 * math.pi * u
+    local phi = math.acos(2 * v - 1)
+    
+    local x = RADIUS * math.sin(phi) * math.cos(theta)
+    local y = RADIUS * math.sin(phi) * math.sin(theta)
+    local z = RADIUS * math.cos(phi)
+    return Vector3.new(x, y, z)
+end
+
+-- Escolhe um jogador aleatório para ser o alvo
+local function chooseRandomTarget()
+    local players = Players:GetPlayers()
+    local validTargets = {}
+
+    for _, player in ipairs(players) do
+        if player ~= speaker and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            table.insert(validTargets, player)
+        end
+    end
+
+    if #validTargets > 0 then
+        currentTarget = validTargets[math.random(1, #validTargets)]
+    else
+        currentTarget = nil
+    end
+end
+
+-- Adiciona uma parte ao sistema, se for válida
+local function trackPart(part)
+    if trackedParts[part] or part.Anchored or isPlayerPart(part) or part:FindFirstChildWhichIsA("Motor6D", true) then
+        return
+    end
+
+    -- Marca a parte como registrada
+    trackedParts[part] = {
+        bodyPosition = nil
+    }
+
+    -- Remove HingeConstraints apenas uma vez
+    for _, c in ipairs(part:GetChildren()) do
+        if c:IsA("HingeConstraint") then
+            c:Destroy()
+        end
+    end
+
+    -- Aplica um BodyPosition fixo
+    local bodyPosition = Instance.new("BodyPosition")
+    bodyPosition.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+    bodyPosition.D = 1000
+    bodyPosition.P = 50000
+    bodyPosition.Parent = part
+    trackedParts[part].bodyPosition = bodyPosition
+
+    -- Define a posição inicial na esfera
+    bodyPosition.Position = rootPart.Position + getRandomSphereOffset()
+
+    -- Remove a parte do rastreamento caso seja destruída
+    part.Destroying:Connect(function()
+        trackedParts[part] = nil
+    end)
+end
+
+-- Atualiza as partes próximas ao jogador
+RunService.Heartbeat:Connect(function()
+    local targetPosition = rootPart.Position
+
+    -- Se houver um alvo válido, a esfera segue ele
+    if currentTarget and currentTarget.Character then
+        local targetRoot = currentTarget.Character:FindFirstChild("HumanoidRootPart")
+        if targetRoot then
+            targetPosition = targetRoot.Position
+        end
+    end
+
+    for part, data in pairs(trackedParts) do
+        if part and part.Parent then
+            -- Mantém a parte na esfera ao redor do alvo
+            data.bodyPosition.Position = targetPosition + getRandomSphereOffset()
+
+            -- Faz a parte girar rapidamente
+            part.AssemblyAngularVelocity = Vector3.new(
+                math.random(-50, 50), 
+                math.random(-50, 50), 
+                math.random(-50, 50)
+            )
+        else
+            trackedParts[part] = nil -- Remove partes deletadas
+        end
+    end
+end)
+
+-- Escolhe um novo alvo a cada 1 segundo
+task.spawn(function()
+    while true do
+        chooseRandomTarget()
+        task.wait(1)
+    end
+end)
+
+-- Verifica novas partes e adiciona ao sistema a cada 2 segundos
+task.spawn(function()
+    while true do
+        for _, part in ipairs(Workspace:GetDescendants()) do
+            if part:IsA("BasePart") and not part.Anchored then
+                trackPart(part)
+            end
+        end
+        task.wait(2)
+    end
+end)
+
+-- Faz o raio da esfera crescer e diminuir continuamente
+task.spawn(function()
+    while true do
+        if radiusGrowing then
+            RADIUS = RADIUS + 25
+            if RADIUS >= MAX_RADIUS then
+                radiusGrowing = false
+            end
+        else
+            RADIUS = RADIUS - 25
+            if RADIUS <= BASE_RADIUS then
+                radiusGrowing = true
+            end
+        end
+        task.wait(0) -- Controla a velocidade da variação do tamanho da esfera
+    end
+end)
