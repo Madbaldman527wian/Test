@@ -9,7 +9,7 @@ local rootPart     = character:WaitForChild("HumanoidRootPart")
 ---- parâmetros
 local BASE_RADIUS  = 0
 local MAX_RADIUS   = 150
-local RADIUS_STEP  = 25        -- incremento de cada variação
+local RADIUS_STEP  = 10        -- incremento de cada variação
 local UPDATE_RATE  = 1 / 20   -- 30 Hz
 
 ---- estado
